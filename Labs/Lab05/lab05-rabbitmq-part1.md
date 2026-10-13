@@ -14,7 +14,7 @@ docker run -d --name rabbitmq --hostname rabbithost -p 5672:5672 -p 15672:15672 
 Criar um primeiro exchange e uma fila:
    - em *Exchanges → Add a new exchange*, criar `greetings` do tipo **direct**;
    - em *Queues → Add a new queue*, criar a fila `hello.q`;
-   - na página do exchange `hello`, em *Bindings*, ligar a fila `hello.q` com a routing key `hello`.
+   - na página do exchange `greetings`, em *Bindings*, ligar a fila `hello.q` com a routing key `hello`.
 3. Na página do exchange `greetings`, em *Publish message*, publicar:
    - uma mensagem com a routing key `hello`;
    - outra com a routing key `bye`.
