@@ -77,7 +77,7 @@ Criar um primeiro exchange e uma fila:
    ```bash
    docker exec rabbitmq rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management
    ```
-2. **Topologia no edge** (UI em `http://localhost:15672`): criar o exchange `notas` (fanout) e a fila `para-cloud` ligada a ele.
+2. **Topologia no edge** (UI em `http://localhost:15672`): criar o exchange `notas` (fanout) e a fila `to-cloud` ligada a ele.
 3. **Criar o shovel no edge.** Pode fazer-se pela UI, em *Admin → Shovel Management → Add a new shovel*, ou por linha de comando:
    ```bash
    docker exec rabbitmq rabbitmqctl set_parameter shovel edge-to-cloud \
