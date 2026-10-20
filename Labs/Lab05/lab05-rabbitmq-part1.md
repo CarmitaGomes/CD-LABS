@@ -28,14 +28,15 @@ Criar um primeiro exchange e uma fila:
 1. Acrescente uma regra à firewall para que seja possível estabelecer ligações com os portos 5672 e 15672.
    
 2. Na VM, lançar o broker com credenciais próprias, volume e reinício automático:
+
    ```bash
    docker run -d --name rabbitmq --hostname rabbithost \
      -p 5672:5672 -p 15672:15672 \
      -e RABBITMQ_DEFAULT_USER=cdisel -e RABBITMQ_DEFAULT_PASS='<password-forte>' \
      rabbitmq:management
    ```
-3. Abrir `http://<IP-VM>:15672` com o utilizador `cdisel`.
-4. **Pergunta:** que risco existe em abrir a 15672 a `0.0.0.0/0` com guest/guest?
+4. Abrir `http://<IP-VM>:15672` com o utilizador `cdisel`.
+5. **Pergunta:** que risco existe em abrir a 15672 a `0.0.0.0/0` com guest/guest?
 
 ### P3 — Montar topologias na UI (30 min)
 
@@ -79,6 +80,15 @@ Criar um primeiro exchange e uma fila:
    ```
 2. **Topologia no edge** (UI em `http://localhost:15672`): criar o exchange `notas` (fanout) e a fila `to-cloud` ligada a ele.
 3. **Criar o shovel no edge.** Pode fazer-se pela UI, em *Admin → Shovel Management → Add a new shovel*, ou por linha de comando:
+
+    **Windows**
+   
+    ```bash
+   docker exec rabbitmq rabbitmqctl set_parameter shovel edge-to-cloud "{\"src-protocol\":\"amqp091\",\"src-uri\":\"amqp://\",\"src-queue\":\"to-cloud\",\"dest-protocol\":\"amqp091\",\"dest-uri\":\"amqp://cdisel:<password-forte>@<IP-VM>:5672\",\"dest-exchange\":\"notas\",\"ack-mode\":\"on-confirm\"}"
+   ```
+
+   **MAC/Linux**
+   
    ```bash
    docker exec rabbitmq rabbitmqctl set_parameter shovel edge-to-cloud \
      '{"src-protocol": "amqp091", "src-uri": "amqp://", "src-queue": "to-cloud",
@@ -87,9 +97,9 @@ Criar um primeiro exchange e uma fila:
    ```
    - `src-uri: amqp://` significa "este broker".
    - O exchange `notas` tem de existir na cloud (P3a).
-4. **Verificar:** em *Admin → Shovel Status* o estado deve ser `running`. Na UI da cloud, em *Connections*, aparece uma ligação vinda do vosso IP.
-5. **Funcionamento normal:** publicar 2 notas no exchange `notas` **do edge**. Confirmar que aparecem em `pautas` e `notificacoes` **na cloud**.
-6. **Falha de ligação:**
+5. **Verificar:** em *Admin → Shovel Status* o estado deve ser `running`. Na UI da cloud, em *Connections*, aparece uma ligação vinda do vosso IP.
+6. **Funcionamento normal:** publicar 2 notas no exchange `notas` **do edge**. Confirmar que aparecem em `pautas` e `notificacoes` **na cloud**.
+7. **Falha de ligação:**
    - na VM, executar `docker stop rabbitmq`;
    - publicar 5 notas no edge e observar a fila `to-cloud` e o estado do shovel;
    - voltar a arrancar com `docker start rabbitmq` e observar a fila `to-cloud` a esvaziar.
