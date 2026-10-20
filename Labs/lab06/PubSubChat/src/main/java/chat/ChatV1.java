@@ -8,7 +8,7 @@ import java.util.Scanner;
 /**
  * PubSubChat — Variante 1 (fanout): todos recebem todas as mensagens.
  *
- * Uso: java -cp PubSubChat-1.0-jar-with-dependencies.jar chat.ChatV1 amqp://cd:<pass>@<IP-VM>:5672
+ * Uso: java -cp PubSubChat-1.0-jar-with-dependencies.jar chat.ChatV1 amqp://<user>:<pass>@<IP-VM>:5672
  */
 public class ChatV1 {
 
