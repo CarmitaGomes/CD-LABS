@@ -1,6 +1,5 @@
-import sys
-
-# Sum the numbers read from stdin, one per line
-numbers = [float(line) for line in sys.stdin if line.strip()]
-print(f"count: {len(numbers)}")
-print(f"sum: {sum(numbers)}")
+# Allocates memory in 10 MB chunks until the container's 256 MB limit is exceeded (exit 137)
+chunks = []
+while True:
+    chunks.append(bytearray(10 * 1024 * 1024))
+    print(f"allocated: {len(chunks) * 10} MB", flush=True)
