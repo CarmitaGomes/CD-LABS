@@ -2,19 +2,22 @@ plugins {
     id("java")
 }
 
-group = "org.example"
-version = "1.0-SNAPSHOT"
+group = "isel.coderunner"
+version = "1.0"
 
 repositories {
     mavenCentral()
 }
 
-dependencies {
-    testImplementation(platform("org.junit:junit-bom:6.0.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
+val grpcVersion = "1.62.2"
 
-tasks.test {
-    useJUnitPlatform()
+dependencies {
+    // 1. Contratos gRPC gerados
+    implementation(project(":contract"))
+
+    // 2. Bibliotecas gRPC
+    implementation("io.grpc:grpc-netty-shaded:${grpcVersion}")
+    implementation("io.grpc:grpc-protobuf:${grpcVersion}")
+    implementation("io.grpc:grpc-stub:${grpcVersion}")
+    compileOnly("org.apache.tomcat:annotations-api:6.0.53")
 }

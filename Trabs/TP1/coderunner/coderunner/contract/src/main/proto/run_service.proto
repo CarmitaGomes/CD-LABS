@@ -1,20 +1,39 @@
 syntax= "proto3";
 option java_multiple_files = true;
-option java_package = "coderunner.contract.registry";
+option java_package = "coderunner.contract.runner";
 
-package registry;
+package runner;
 
-service ManagerRegistry {
-  // registo do RunServer + recebe endereço do REDIS
-  rpc registerRunServer(RegisterRequest) returns (RegisterReply);
+service RunService {
+  // cliente envia ficheiro aos bocados (streaming), recebe identificador
+  rpc submit(stream FileChunk) returns (SubmitReply);
+
+  // cliente vpede o identificador, e o servidor devolve o out aos bocados
+  rpc getResult(ResultRequest) returns (stream ResultChunk);
+
 }
 
-message RegisterRequest {
-  string ip = 1;
-  int32  port = 2;
+message FileChunk {
+  oneof payload {
+    string filename = 1;
+    bytes data = 2;
+  }
 }
 
-message RegisterReply {
-  string redisIp = 1;
-  int32 redisPort = 2;
+message SubmitReply {
+  string requestId = 1;
+}
+
+message ResultRequest {
+  string requestId = 1;
+}
+
+message ResultChunk {
+  string status = 1;
+  bytes stdoutData = 2;
+  bytes stderrData = 3;
+
+  // Caso o pedido tenha sido executado noutro RunServer
+  string redirectIp = 4;
+  int32 redirectPort = 5;
 }

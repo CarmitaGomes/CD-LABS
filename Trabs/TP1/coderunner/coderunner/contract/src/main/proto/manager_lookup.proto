@@ -1,2 +1,19 @@
 syntax = "proto3";
-option
+option java_multiple_files = true;
+option java_package = "coderunner.contract.lookup";
+
+package lookup;
+
+service ManagerLookup {
+  // cliente pede servidor disponivel
+  rpc getServer(LookupRequest) returns (ServerLocation);
+}
+
+message LookupRequest {
+
+}
+
+message ServerLocation {
+  string ip = 1;
+  int32 port = 2;
+}
