@@ -1,4 +1,4 @@
-# Lab 3b — PubSubChat: um chat com publish/subscribe
+# Lab 6 — PubSubChat: um chat com publish/subscribe
 
 ## Objetivos
 
