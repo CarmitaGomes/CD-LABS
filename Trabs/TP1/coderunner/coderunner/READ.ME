@@ -1,0 +1,207 @@
+# README — Sistema CodeRunner (TPA1)
+
+
+
+## 1. Descrição Geral da Arquitetura
+
+O sistema **CodeRunner** é uma plataforma distribuída concebida para a execução remota e isolada de scripts Python. A solução é composta por quatro intervenientes essenciais:
+
+* **ManagerServer:** Serviço centralizado (IP e porto conhecidos) responsável pelo registo dos nós de execução (`RunServer`) e pelo balanceamento de carga dos pedidos de clientes através do algoritmo *Round-Robin*.
+
+
+* **RunServer:** Servidor de execução responsável por receber ficheiros de código e dados por *streaming* gRPC, isolar e executar cada processo num contentor Docker efémero (`python:3.12-slim`), gerir o estado no Redis e retornar o fluxo de saída (*stdout* e *stderr*).
+
+
+* **REDIS:** Base de dados chave-valor partilhada que mantém o ciclo de vida e estado global de cada pedido (`PENDENTE`, `CONCLUIDO`, `TIMEOUT`, `ERRO`) e a localização do servidor responsável. Não armazena os ficheiros de saída.
+
+
+* **Client / DemoApp:** Interfaces de utilizador e simuladores de carga concorrente que interagem com o sistema via gRPC.
+
+
+
+---
+
+## 2. Pressupostos e Políticas de Segurança
+
+1. **Isolamento de Recursos Docker:** Cada pedido corre com `--network none` (sem rede exterior), limite estrito de memória de `256MB` (`--memory 256m --memory-swap 256m`) e tempo máximo de CPU limitado a 10 segundos (`timeout 10`).
+
+
+2. **Ciclo de Vida de Contentores:** Nenhum contentor permanece no anfitrião após a execução; todos são forçosamente eliminados (`docker rm -f`) através de blocos `finally`.
+
+
+3. **Persistência Volátil e Limpeza de Dados:** Os ficheiros `out.txt` e `err.txt` residem unicamente no disco do nó `RunServer` executor até serem recolhidos pelo cliente, sendo eliminados imediatamente após a entrega bem-sucedida.
+
+
+4. **Independência de Acesso:** Um cliente pode consultar o estado e obter o resultado de uma tarefa a partir de qualquer `RunServer`; caso o nó consultado não seja o detentor dos ficheiros, este recorre ao Redis para redirecionar o cliente para o nó correto.
+
+
+
+---
+
+## 3. Pré-requisitos
+
+* **Java Development Kit (JDK):** Versão 21 instalada.
+
+
+* **Docker Engine / Docker Desktop:** Instalado e em execução na máquina do Manager e nas máquinas de execução.
+
+
+* **Imagem Base Python:** Pré-carregada nos nós que alojam os servidores de execução:
+
+
+```bash
+docker pull python:3.12-slim
+
+```
+
+
+
+---
+
+## 4. Instruções de Compilação
+
+Na pasta raiz do projeto (`coderunner/`), compile os contratos Protobuf e as aplicações através do Gradle Wrapper:
+
+* **Em Linux / macOS:**
+```bash
+./gradlew build
+./gradlew :demo:installDist
+
+```
+
+
+* **Em Windows (PowerShell):**
+```powershell
+.\gradlew.bat build
+.\gradlew.bat :demo:installDist
+
+```
+
+
+
+---
+
+## 5. Ordem de Inicialização e Execução do Sistema
+
+Para assegurar a integridade da comunicação, arranque os componentes pela seguinte sequência:
+
+### Passo 1: Base de Dados REDIS (Na VM/Máquina do Manager)
+
+Inicie o contentor Redis partilhado com mapeamento da porta padrão `6379`:
+
+```bash
+docker run -d --name ServerRedis -p 6379:6379 redis:alpine
+
+```
+
+Confirme o estado de prontidão com:
+
+```bash
+docker exec -it ServerRedis redis-cli ping
+# Resposta esperada: PONG
+
+```
+
+### Passo 2: ManagerServer (Porto fixo 8080)
+
+Inicie o gestor central:
+
+* **No IntelliJ:** Execute a classe `coderunner.manager.ManagerServer`.
+* **Via Terminal:**
+```bash
+./gradlew :manager:run
+
+```
+
+
+*(Windows: `.\gradlew.bat :manager:run`)*
+
+### Passo 3: Nós RunServer (Instâncias concorrentes)
+
+Inicie uma ou mais instâncias especificando o porto como argumento:
+
+* **Instância 1 (Porto 8001):**
+```bash
+./gradlew :runserver:run --args="8001"
+
+```
+
+
+* **Instância 2 (Porto 8002):**
+```bash
+./gradlew :runserver:run --args="8002"
+
+```
+
+
+* **Instância 3 (Porto 8003):**
+```bash
+./gradlew :runserver:run --args="8003"
+
+```
+
+
+
+### Passo 4: Clientes e Simulação Concorrente
+
+#### A. Cliente Interativo (`ClientApp`)
+
+Para submissão manual de ficheiros `.py` e consulta por UUID:
+
+```bash
+./gradlew :client:run
+
+```
+
+*(Windows: `.\gradlew.bat :client:run`)*
+
+#### B. Aplicação de Demonstração de Carga Concorrente (`DemoApp` / `Demo.jar`)
+
+Executa múltiplos clientes concorrentes cobrindo fluxos normais, timeouts e violações de memória:
+
+* **Via Script Distribuído do Gradle:**
+* Linux / VM:
+```bash
+./demo/build/install/demo/bin/demo 6
+
+```
+
+
+* Windows:
+```powershell
+.\demo\build\install\demo\bin\demo.bat 6
+
+```
+
+
+
+
+* **Via Gradle Task direta:**
+```powershell
+.\gradlew.bat :demo:run --args="6"
+
+```
+
+
+
+---
+
+## 6. Procedimento para a Demonstração em Múltiplas VMs (GCP)
+
+Para cumprir o cenário final de demonstração (mínimo de 3 `RunServer` em pelo menos 2 VMs distintas):
+
+1. **Configuração de Firewall:** Assegurar regras de entrada na rede VPC do GCP para os portos TCP `8080` (Manager) e `8001-8003` (RunServers).
+2. **Definição de IPs:** No ficheiro `RunServer.java` e `DemoApp.java` (ou via passagem de argumentos CLI), atualizar a constante `MANAGER_HOST` com o IP externo da máquina que aloja o `ManagerServer`.
+
+
+3. **Distribuição dos Componentes:**
+* **VM 1:** Executa o `ManagerServer` e o contentor `ServerRedis`.
+
+
+* **VM 2:** Executa dois `RunServer` nos portos `8001` e `8002`.
+
+
+* **VM 3:** Executa um `RunServer` no porto `8001`.
+
+
+* **Máquina Local / VM:** Executa o `demo` a disparar os pedidos concorrentes contra o `ManagerServer`.

@@ -1,20 +1,28 @@
 plugins {
     id("java")
+    id("application")
 }
 
-group = "org.example"
-version = "1.0-SNAPSHOT"
+group = "isel.coderunner"
+version = "1.0"
 
 repositories {
     mavenCentral()
 }
 
+val grpcVersion = "1.62.2"
+
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:6.0.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    // Contratos partilhados
+    implementation(project(":contract"))
+
+    // Dependências gRPC
+    implementation("io.grpc:grpc-netty-shaded:${grpcVersion}")
+    implementation("io.grpc:grpc-protobuf:${grpcVersion}")
+    implementation("io.grpc:grpc-stub:${grpcVersion}")
+    compileOnly("org.apache.tomcat:annotations-api:6.0.53")
 }
 
-tasks.test {
-    useJUnitPlatform()
+application {
+    mainClass.set("coderunner.demo.DemoApp")
 }
